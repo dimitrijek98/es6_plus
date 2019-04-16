@@ -1,0 +1,26 @@
+{
+  "name": "es6_plus",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "webpack": "^4.30.0",
+    "webpack-cli": "^3.3.0",
+    "webpack-dev-server": "^3.3.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dimitrijek98/es6_plus.git"
+  },
+  "author": "Dimitrije Kostic",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dimitrijek98/es6_plus/issues"
+  },
+  "homepage": "https://github.com/dimitrijek98/es6_plus#readme"
+}
