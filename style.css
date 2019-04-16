@@ -1,0 +1,73 @@
+body {
+    background-color: #363636;
+}
+.container {
+    display: flex;
+    flex-direction: row;
+    height: 800px;
+
+}
+.side {
+    display: flex;
+    flex-grow: 1;    
+    flex-direction: column;
+    padding: 20px;
+    background-color: white;
+
+}
+.reactors {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 3;
+}
+
+.reactor{
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;     
+    background-color: aquamarine;
+    margin-right: 10px;    
+}
+
+.skala{
+    display: flex;
+    flex-direction: column-reverse;
+    flex-grow: 10;        
+    border-style: solid;
+    border-color: black;
+    background-color: white;
+    margin: 10px;
+    border-width: 1px;
+}
+
+.plusMinus {           
+    flex-grow: 1;  
+    margin: 10px;
+}
+
+.iznos {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+
+.dugmici{
+    display: flex;
+    flex-direction: row;
+    margin-top: 10px;
+}
+
+.pokreni {
+    background-color: aquamarine;
+    flex-grow: 1;
+    margin-right: 5px;
+}
+
+
+.iskljuci {
+    background-color: red;
+    flex-grow: 1;
+    
+    margin-left: 5px;
+
+}
