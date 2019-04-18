@@ -13,6 +13,7 @@ body {
     flex-direction: column;
     padding: 20px;
     background-color: white;
+    float: right;
 
 }
 .reactors {
@@ -66,8 +67,19 @@ body {
 
 .iskljuci {
     background-color: red;
-    flex-grow: 1;
-    
+    flex-grow: 1;    
     margin-left: 5px;
 
+}
+
+textarea{
+    height: 100px;
+}
+
+.konzola {
+    background-color: #202020;
+    color: green;
+    margin-top: 10px;
+    
+    
 }

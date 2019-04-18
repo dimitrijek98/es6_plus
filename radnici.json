@@ -1,0 +1,29 @@
+{
+    "radnici" : [
+        {
+            "id" : 1234,
+            "ime": "Nenad",
+            "prezime": "Vasic"
+        },
+        {
+            "id" : 1235,
+            "ime": "Jovan",
+            "prezime": "Ilic"
+        },
+        {
+            "id" : 1236,
+            "ime": "Maja",
+            "prezime": "Tomic"
+        },
+        {
+            "id" : 1237,
+            "ime": "Ivona",
+            "prezime": "Simic"
+        },
+        {
+            "id" : 1238,
+            "ime": "Igor",
+            "prezime": "Zec"
+        }
+    ]
+}

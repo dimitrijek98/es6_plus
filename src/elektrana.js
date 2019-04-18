@@ -2,13 +2,21 @@ import { Reaktor } from "./reaktor";
 
 export class Elektrana {
     constructor(naziv, roditelj){
-        this.naziv = naziv;        
+        this.naziv = naziv;
         this.roditelj = roditelj
+
+        this.reactors = null;
+        this.konzola = null;
+
+
         this.InicijalizacijaReaktora();
-        this.Prikazi();
+        
+        this.PrikaziKontrolu();
+        this.PrikaziReaktorPlaceholder();
+        
 
     }
-    
+
     InicijalizacijaReaktora(){
         this.reaktori = [];
         for( let i = 0; i<4; i++){
@@ -17,19 +25,81 @@ export class Elektrana {
         }
     }
 
-    Prikazi(){       
-        this.PrikaziReaktore();
-        this.PrikaziKontroli();
+    PrikaziReaktorPlaceholder(){
+        this.reactors = document.createElement("div");
+        this.reactors.className = "reactors";
+        this.roditelj.appendChild(this.reactors);
+    }
+
+    PrikaziKontrolu(){
+        const side = document.createElement("div");
+        side.className = "side";
+        this.roditelj.appendChild(side);
+
+        const sifraLbl = document.createElement("label");
+        sifraLbl.innerHTML = "Sifra radnika: ";
+        side.appendChild(sifraLbl);
+
+        const sifraTxt = document.createElement("input");
+        sifraTxt.className = "sifraRadnika";
+        side.appendChild(sifraTxt);
+
+        const dugmici = document.createElement("div");
+        dugmici.className = "dugmici";
+        side.appendChild(dugmici);
+
+        const pokreni = document.createElement("button");
+        pokreni.innerHTML = "Pokreni";
+        pokreni.className = "pokreni";
+        pokreni.onclick = (ev) => this.pokreniElektranu(ev);
+        dugmici.appendChild(pokreni);    
+
+        
+        const iskljuci = document.createElement("button");
+        iskljuci.innerHTML = "Iskljuci";
+        iskljuci.disabled = true;
+        iskljuci.onclick = (ev) => this.iskljuciElektranu(ev);
+        iskljuci.className = "iskljuci";
+        
+        dugmici.appendChild(iskljuci); 
+
+        this.konzola = document.createElement("textarea");
+        this.konzola.className = "konzola";
+        side.appendChild(this.konzola);
+    }
+
+    pokreniElektranu(ev){
+        const teksPolje = document.querySelector(".sifraRadnika");
+        fetch(`http://localhost:3000/radnici/${teksPolje.value}`)
+        .then(radnik =>{    
+            if(radnik.ok){    
+               this.PrikaziReaktore();
+               ev.target.disabled = true;
+               const iskljuci = document.querySelector(".iskljuci");
+               iskljuci.disabled = false;
+               radnik.json().then(rez=>this.konzola.innerHTML += `Pokretanje od strane radnika ${rez.ime} ${rez.prezime} `+ "&#13;&#10");
+            }
+            else
+                this.konzola.innerHTML += `Doslo je do greske `+ "&#13;&#10";
+            
+        })        
+        .catch(err => console.log(err))
+    }
+
+    iskljuciElektranu(ev){
+        ev.target.disabled = true;
+        this.reactors.style.display = 'none';  
+        this.PrikaziReaktorPlaceholder();    
+        const pokreni = document.querySelector(".pokreni");
+        pokreni.disabled = false;
     }
 
     PrikaziReaktore(){                
-        const reactors = document.createElement("div");
-        reactors.className = "reactors";
-        this.roditelj.appendChild(reactors);
+        
         this.reaktori.map(reaktor => {
             let reaktCont = document.createElement("div");
             reaktCont.className = "reactor";
-            reactors.appendChild(reaktCont);
+            this.reactors.appendChild(reaktCont);
             this.PrikaziReaktor(reaktor,reaktCont);
         })
 
@@ -88,34 +158,8 @@ export class Elektrana {
         hladj.appendChild(hladjBtnMinus);
     }
 
-    PrikaziKontroli(){
-        const side = document.createElement("div");
-        side.className = "side";
-        this.roditelj.appendChild(side);
-
-        const sifraLbl = document.createElement("label");
-        sifraLbl.innerHTML = "Sifra radnika: ";
-        side.appendChild(sifraLbl);
-
-        const sifraTxt = document.createElement("input");
-        side.appendChild(sifraTxt);
-
-        const dugmici = document.createElement("div");
-        dugmici.className = "dugmici";
-        side.appendChild(dugmici);
-
-        const pokreni = document.createElement("button");
-        pokreni.innerHTML = "Pokreni";
-        pokreni.className = "pokreni";
-        dugmici.appendChild(pokreni);    
-
-        
-        const iskljuci = document.createElement("button");
-        iskljuci.innerHTML = "Iskljuci";
-        iskljuci.className = "iskljuci";
-        
-        dugmici.appendChild(iskljuci); 
-    }
+    
+    
 
     
 }
