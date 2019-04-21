@@ -1,15 +1,19 @@
 import { Reaktor } from "./reaktor";
+import { Subject } from "rxjs";
+import { format } from "url";
 
 export class Elektrana {
     constructor(naziv, roditelj){
         this.naziv = naziv;
-        this.roditelj = roditelj
+        this.roditelj = roditelj;
+        this.mainSubject$ = null;
+        this.cooling$ = null;
+        this.reaktori = [];
 
         this.reactors = null;
         this.konzola = null;
 
 
-        this.InicijalizacijaReaktora();
         
         this.PrikaziKontrolu();
         this.PrikaziReaktorPlaceholder();
@@ -18,17 +22,17 @@ export class Elektrana {
     }
 
     InicijalizacijaReaktora(){
-        this.reaktori = [];
         for( let i = 0; i<4; i++){
             const kapacitet = Math.random() + 1;
-            this.reaktori.push(new Reaktor(kapacitet.toFixed(1)));
+            
+            if(this.reaktori === []){
+                this.reaktori.push(new Reaktor(i+1,kapacitet.toFixed(1),this.mainSubject$,this.cooling$));
+            }
+            else{
+                this.reaktori[i] = new Reaktor(i+1,kapacitet.toFixed(1),this.mainSubject$,this.cooling$);
+                
+            }
         }
-    }
-
-    PrikaziReaktorPlaceholder(){
-        this.reactors = document.createElement("div");
-        this.reactors.className = "reactors";
-        this.roditelj.appendChild(this.reactors);
     }
 
     PrikaziKontrolu(){
@@ -68,16 +72,35 @@ export class Elektrana {
         side.appendChild(this.konzola);
     }
 
+    PrikaziReaktorPlaceholder(){
+        this.reactors = document.createElement("div");
+        this.reactors.className = "reactors";
+        this.roditelj.appendChild(this.reactors);
+    }
+
     pokreniElektranu(ev){
         const teksPolje = document.querySelector(".sifraRadnika");
         fetch(`http://localhost:3000/radnici/${teksPolje.value}`)
         .then(radnik =>{    
-            if(radnik.ok){    
-               this.PrikaziReaktore();
-               ev.target.disabled = true;
-               const iskljuci = document.querySelector(".iskljuci");
-               iskljuci.disabled = false;
-               radnik.json().then(rez=>this.konzola.innerHTML += `Pokretanje od strane radnika ${rez.ime} ${rez.prezime} `+ "&#13;&#10");
+            if(radnik.ok){
+                this.mainSubject$ = new Subject();
+                this.cooling$ = new Subject();
+                
+    
+                this.InicijalizacijaReaktora();    
+                this.PrikaziReaktore();
+
+                this.cooling$.subscribe(val => {
+                    let lbl =  document.querySelectorAll(".iznosH");
+                    for(let i = 0; i < 4; i++){
+                        lbl[i].innerHTML = this.reaktori[i].vratiHladjenje();
+                    }
+                });
+                ev.target.disabled = true;
+                const iskljuci = document.querySelector(".iskljuci");
+                iskljuci.disabled = false;
+
+                radnik.json().then(rez=>this.konzola.innerHTML += `Pokretanje od strane radnika ${rez.ime} ${rez.prezime} `+ "&#13;&#10");
             }
             else
                 this.konzola.innerHTML += `Doslo je do greske `+ "&#13;&#10";
@@ -90,23 +113,24 @@ export class Elektrana {
         ev.target.disabled = true;
         this.reactors.style.display = 'none';  
         this.PrikaziReaktorPlaceholder();    
+        this.mainSubject$.complete();
         const pokreni = document.querySelector(".pokreni");
         pokreni.disabled = false;
     }
 
     PrikaziReaktore(){                
         
-        this.reaktori.map(reaktor => {
+        this.reaktori.map((reaktor,index) => {
             let reaktCont = document.createElement("div");
             reaktCont.className = "reactor";
             this.reactors.appendChild(reaktCont);
-            this.PrikaziReaktor(reaktor,reaktCont);
+            this.PrikaziReaktor(reaktor,reaktCont,index+1);
         })
 
     }
 
-
-    PrikaziReaktor(reaktor, container){
+    PrikaziReaktor(reaktor, container,index){
+        
         let skala = document.createElement("div");
         skala.className = "skala";
         container.appendChild(skala);
@@ -133,7 +157,7 @@ export class Elektrana {
         snaga.appendChild(snagaBtnPlus);
         
         let snagaBtnMinus = document.createElement("button");
-        snagaBtnMinus.innerHTML = "-";
+        snagaBtnMinus.innerHTML = "-";        
         snaga.appendChild(snagaBtnMinus);
         
         let hladj = document.createElement("div");
@@ -145,21 +169,24 @@ export class Elektrana {
         hladj.appendChild(hladjLbl);
         
         let iznosHladj = document.createElement("label");
-        iznosHladj.innerHTML = reaktor.iskoriscenost;
-        iznosHladj.className = "iznos";
+        iznosHladj.innerHTML = reaktor.vratiHladjenje();
+        iznosHladj.className = "iznosH";
         hladj.appendChild(iznosHladj);
 
         let hladjBtnPlus = document.createElement("button");
         hladjBtnPlus.innerHTML = "+";
+        hladjBtnPlus.id = index;
+        hladjBtnPlus.onclick = (e) =>  this.cooling$.next(e.target.id);
         hladj.appendChild(hladjBtnPlus);
         
         let hladjBtnMinus = document.createElement("button");
         hladjBtnMinus.innerHTML = "-";
+        hladjBtnMinus.id =  -index;
+        hladjBtnMinus.onclick = (e) =>  this.cooling$.next(e.target.id);
         hladj.appendChild(hladjBtnMinus);
     }
 
-    
-    
+   
 
     
 }
