@@ -1,14 +1,17 @@
 import { Reaktor } from "./reaktor";
-import { Subject } from "rxjs";
-import { format } from "url";
+import { Subject, Observable } from "rxjs";
+import { takeUntil } from "rxjs/operators";
 
 export class Elektrana {
 
-    constructor(naziv, roditelj){
+    constructor(naziv, roditelj, mainSubject$, zahtevi$){
         this.naziv = naziv;
         this.roditelj = roditelj;
-        this.mainSubject$ = null;
+        this.zahtevi$ = zahtevi$;
+        this.mainSubject$ = mainSubject$;
         this.cooling$ = null;
+        this.feedback$ = new Subject();
+        this.power$ = null;
         this.reaktori = [];
 
         this.reactors = null;
@@ -16,6 +19,19 @@ export class Elektrana {
 
         this.PrikaziKontrolu();
         this.PrikaziReaktorPlaceholder();
+
+        
+    }
+    izracunajUkupnuSnagu(val){
+        let sum = 0.0;
+        this.reaktori.map(reaktor =>{
+            sum += parseFloat(reaktor.vratiIzlaznuSnagu());
+        });
+        console.log(sum);
+        if(val <= sum)
+            this.feedback$.next(true);
+        else
+            this.feedback$.next(false);
 
     }
 
@@ -54,6 +70,24 @@ export class Elektrana {
         this.konzola = document.createElement("textarea");
         this.konzola.className = "konzola";
         side.appendChild(this.konzola);
+
+        const demandsLbl = document.createElement("label");
+        demandsLbl.innerHTML = "Zahtevi za ovaj sat su: ";
+        demandsLbl.className = "demandsLbl";
+        side.appendChild(demandsLbl);
+
+        const demands = document.createElement("h2");
+        demands.className = "demands";
+        side.appendChild(demands);
+
+        const ukupnaSnagaLbl = document.createElement("label");
+        ukupnaSnagaLbl.innerHTML = "Trenutna ukupna snaga: ";
+        ukupnaSnagaLbl.className = "ukupnaSnagaLbl";
+        side.appendChild(ukupnaSnagaLbl);
+
+        const ukupnaSnaga = document.createElement("h2");
+        ukupnaSnaga.className = "ukupnaSnaga";
+        side.appendChild(ukupnaSnaga);
     }
 
     PrikaziReaktorPlaceholder(){
@@ -66,20 +100,43 @@ export class Elektrana {
         const teksPolje = document.querySelector(".sifraRadnika");
         fetch(`http://localhost:3000/radnici/${teksPolje.value}`)
         .then(radnik =>{    
-            if(radnik.ok){
-                this.mainSubject$ = new Subject();
+            if(radnik.ok){               
                 this.cooling$ = new Subject();
+                this.power$ = new Subject();
                 
-    
+                this.zahtevi$
+                .pipe(
+                    takeUntil(this.mainSubject$)
+                )
+                .subscribe(val => {
+                    document.querySelector(".demands").innerHTML = val.toFixed(2);
+                    setTimeout(() => this.izracunajUkupnuSnagu(val), 14500);
+                });
                 this.InicijalizacijaReaktora();    
                 this.PrikaziReaktore();
 
+                this.mainSubject$.subscribe(null,null,complete=>{
+                    this.iskljuciElektranu();
+                })
                 this.cooling$.subscribe(val => {
-                    let lbl =  document.querySelectorAll(".iznosH");
+                    let iznosHladjenjaLbl =  document.querySelectorAll(".iznosH");
                     for(let i = 0; i < 4; i++){
-                        lbl[i].innerHTML = this.reaktori[i].vratiHladjenje();
+                        iznosHladjenjaLbl[i].innerHTML = this.reaktori[i].vratiHladjenje();
+                        this.promenaPopune(Math.abs(parseInt(i+1)));
                     }
+                    this.promenaPopune(Math.abs(parseInt(val)));
                 });
+                this.power$.subscribe(val => {
+                    setTimeout(() => this.promenaSnage(val),100);
+                    let iznosUkupneSnageLbl = document.querySelector(".ukupnaSnaga"); 
+                    let sum = 0.0;
+                    this.reaktori.map(reaktor =>{
+                        sum += parseFloat(reaktor.vratiIzlaznuSnagu());
+                     });
+                     iznosUkupneSnageLbl.innerHTML = sum.toFixed(2);
+                })
+
+
                 ev.target.disabled = true;
                 const iskljuci = document.querySelector(".iskljuci");
                 iskljuci.disabled = false;
@@ -98,10 +155,10 @@ export class Elektrana {
             const kapacitet = Math.random() + 1;
             
             if(this.reaktori === []){
-                this.reaktori.push(new Reaktor(i,kapacitet.toFixed(1),this.mainSubject$,this.cooling$));
+                this.reaktori.push(new Reaktor(i+1,kapacitet.toFixed(1),this.mainSubject$,this.cooling$));
             }
             else{
-                this.reaktori[i] = new Reaktor(i,kapacitet.toFixed(1),this.mainSubject$,this.cooling$);
+                this.reaktori[i] = new Reaktor(i+1,kapacitet.toFixed(1),this.mainSubject$,this.cooling$);
                 
             }
         }
@@ -112,7 +169,8 @@ export class Elektrana {
             let reaktCont = document.createElement("div");
             reaktCont.className = "reactor";
             this.reactors.appendChild(reaktCont);
-            this.PrikaziReaktor(reaktor,reaktCont,index);
+            this.PrikaziReaktor(reaktor,reaktCont,index+1);
+
         })
 
     }
@@ -126,6 +184,7 @@ export class Elektrana {
 
         let popuna = document.createElement("div");
         popuna.className = "popuna";
+        popuna.style.flexGrow = 0.5;
         skala.appendChild(popuna);
 
         let snaga = document.createElement("div");
@@ -143,11 +202,15 @@ export class Elektrana {
 
         let snagaBtnPlus = document.createElement("button");
         snagaBtnPlus.className = "snagaPlus";
+        snagaBtnPlus.id = index;
+        snagaBtnPlus.onclick = (ev) => this.power$.next(ev.target.id);
         snagaBtnPlus.innerHTML = "+";
         snaga.appendChild(snagaBtnPlus);
         
         let snagaBtnMinus = document.createElement("button");
         snagaBtnMinus.className = "snagaMinus";
+        snagaBtnMinus.id = -index;
+        snagaBtnMinus.onclick = (ev) => this.power$.next(ev.target.id);
         snagaBtnMinus.innerHTML = "-";        
         snaga.appendChild(snagaBtnMinus);
         
@@ -175,18 +238,51 @@ export class Elektrana {
         hladjBtnMinus.id =  -index;
         hladjBtnMinus.onclick = (e) =>  this.cooling$.next(e.target.id);
         hladj.appendChild(hladjBtnMinus);
+
+        this.reaktori[index-1].osluskuj();
     }
 
-    iskljuciElektranu(ev){
-        ev.target.disabled = true;
+    promenaSnage(ind){
+        let intIndex = Math.abs(parseInt(ind));
+        let labela = document.querySelectorAll(".iznos")[intIndex-1];
+        
+         
+        let iskoriscenost = this.reaktori[intIndex-1].vratiIskoriscenost();
+        labela.innerHTML = iskoriscenost;
+
+        this.promenaPopune(intIndex);
+        /*let iskoriscenost = this.reaktori[intIndex-1].vratiIskoriscenost();
+        labela.innerHTML = iskoriscenost;
+        popuna.style.flexGrow = iskoriscenost/100;
+        if(this.reaktori[intIndex-1].vratiTemperaturu()>=150.0)
+            popuna.style.background = 'red';
+        else{
+            popuna.style.background = 'green';
+        }*/
+    }
+
+    promenaPopune(ind){
+        let popuna = document.querySelectorAll(".popuna")[ind-1];
+        let iskoriscenost = this.reaktori[ind-1].vratiIskoriscenost();
+        popuna.style.flexGrow = iskoriscenost/100;
+        if(this.reaktori[ind-1].vratiTemperaturu()>=150.0)
+            popuna.style.background = 'red';
+        else{
+            popuna.style.background = 'green';
+        }
+    }
+
+    iskljuciElektranu(){
+        document.querySelector(".iskljuci").disabled = true;
         this.reactors.style.display = 'none';  
         this.PrikaziReaktorPlaceholder();    
-        this.mainSubject$.complete();
         const pokreni = document.querySelector(".pokreni");
         pokreni.disabled = false;
     }
 
-
+    feedback(){
+        return this.feedback$;
+    }
    
 
    

@@ -16,6 +16,11 @@ body {
     float: right;
 
 }
+
+.demandsLbl .ukupnaSnagaLbl {
+    margin-top: 20px;
+}
+
 .reactors {
     display: flex;
     flex-direction: row;
@@ -41,6 +46,9 @@ body {
     border-width: 1px;
 }
 
+.popuna{
+    background-color: green;
+}
 .plusMinus {           
     flex-grow: 1;  
     margin: 10px;
