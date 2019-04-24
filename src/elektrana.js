@@ -3,6 +3,7 @@ import { Subject } from "rxjs";
 import { format } from "url";
 
 export class Elektrana {
+
     constructor(naziv, roditelj){
         this.naziv = naziv;
         this.roditelj = roditelj;
@@ -13,26 +14,9 @@ export class Elektrana {
         this.reactors = null;
         this.konzola = null;
 
-
-        
         this.PrikaziKontrolu();
         this.PrikaziReaktorPlaceholder();
-        
 
-    }
-
-    InicijalizacijaReaktora(){
-        for( let i = 0; i<4; i++){
-            const kapacitet = Math.random() + 1;
-            
-            if(this.reaktori === []){
-                this.reaktori.push(new Reaktor(i+1,kapacitet.toFixed(1),this.mainSubject$,this.cooling$));
-            }
-            else{
-                this.reaktori[i] = new Reaktor(i+1,kapacitet.toFixed(1),this.mainSubject$,this.cooling$);
-                
-            }
-        }
     }
 
     PrikaziKontrolu(){
@@ -109,28 +93,33 @@ export class Elektrana {
         .catch(err => console.log(err))
     }
 
-    iskljuciElektranu(ev){
-        ev.target.disabled = true;
-        this.reactors.style.display = 'none';  
-        this.PrikaziReaktorPlaceholder();    
-        this.mainSubject$.complete();
-        const pokreni = document.querySelector(".pokreni");
-        pokreni.disabled = false;
+    InicijalizacijaReaktora(){
+        for( let i = 0; i<4; i++){
+            const kapacitet = Math.random() + 1;
+            
+            if(this.reaktori === []){
+                this.reaktori.push(new Reaktor(i,kapacitet.toFixed(1),this.mainSubject$,this.cooling$));
+            }
+            else{
+                this.reaktori[i] = new Reaktor(i,kapacitet.toFixed(1),this.mainSubject$,this.cooling$);
+                
+            }
+        }
     }
 
-    PrikaziReaktore(){                
-        
+    PrikaziReaktore(){
         this.reaktori.map((reaktor,index) => {
             let reaktCont = document.createElement("div");
             reaktCont.className = "reactor";
             this.reactors.appendChild(reaktCont);
-            this.PrikaziReaktor(reaktor,reaktCont,index+1);
+            this.PrikaziReaktor(reaktor,reaktCont,index);
         })
 
     }
 
     PrikaziReaktor(reaktor, container,index){
         
+       
         let skala = document.createElement("div");
         skala.className = "skala";
         container.appendChild(skala);
@@ -153,10 +142,12 @@ export class Elektrana {
         snaga.appendChild(iznosSnage);
 
         let snagaBtnPlus = document.createElement("button");
+        snagaBtnPlus.className = "snagaPlus";
         snagaBtnPlus.innerHTML = "+";
         snaga.appendChild(snagaBtnPlus);
         
         let snagaBtnMinus = document.createElement("button");
+        snagaBtnMinus.className = "snagaMinus";
         snagaBtnMinus.innerHTML = "-";        
         snaga.appendChild(snagaBtnMinus);
         
@@ -185,6 +176,18 @@ export class Elektrana {
         hladjBtnMinus.onclick = (e) =>  this.cooling$.next(e.target.id);
         hladj.appendChild(hladjBtnMinus);
     }
+
+    iskljuciElektranu(ev){
+        ev.target.disabled = true;
+        this.reactors.style.display = 'none';  
+        this.PrikaziReaktorPlaceholder();    
+        this.mainSubject$.complete();
+        const pokreni = document.querySelector(".pokreni");
+        pokreni.disabled = false;
+    }
+
+
+   
 
    
 
