@@ -1,38 +1,22 @@
 import { Reaktor } from "./reaktor";
-import { Subject, Observable } from "rxjs";
+import { Subject, Observable, interval } from "rxjs";
 import { takeUntil } from "rxjs/operators";
 
 export class Elektrana {
 
-    constructor(naziv, roditelj, mainSubject$, zahtevi$){
+    constructor(naziv, roditelj, zahtevi$){
         this.naziv = naziv;
         this.roditelj = roditelj;
         this.zahtevi$ = zahtevi$;
-        this.mainSubject$ = mainSubject$;
+        this.mainSubject$ = new Subject();
         this.cooling$ = null;
         this.feedback$ = new Subject();
         this.power$ = null;
         this.reaktori = [];
-
         this.reactors = null;
         this.konzola = null;
-
         this.PrikaziKontrolu();
         this.PrikaziReaktorPlaceholder();
-
-        
-    }
-    izracunajUkupnuSnagu(val){
-        let sum = 0.0;
-        this.reaktori.map(reaktor =>{
-            sum += parseFloat(reaktor.vratiIzlaznuSnagu());
-        });
-        console.log(sum);
-        if(val <= sum)
-            this.feedback$.next(true);
-        else
-            this.feedback$.next(false);
-
     }
 
     PrikaziKontrolu(){
@@ -103,54 +87,33 @@ export class Elektrana {
             if(radnik.ok){               
                 this.cooling$ = new Subject();
                 this.power$ = new Subject();
-                
-                this.zahtevi$
-                .pipe(
-                    takeUntil(this.mainSubject$)
-                )
-                .subscribe(val => {
-                    document.querySelector(".demands").innerHTML = val.toFixed(2);
-                    setTimeout(() => this.izracunajUkupnuSnagu(val), 14500);
-                });
-                this.InicijalizacijaReaktora();    
-                this.PrikaziReaktore();
 
-                this.mainSubject$.subscribe(null,null,complete=>{
-                    this.iskljuciElektranu();
-                })
-                this.cooling$.subscribe(val => {
-                    let iznosHladjenjaLbl =  document.querySelectorAll(".iznosH");
-                    for(let i = 0; i < 4; i++){
-                        iznosHladjenjaLbl[i].innerHTML = this.reaktori[i].vratiHladjenje();
-                        this.promenaPopune(Math.abs(parseInt(i+1)));
-                    }
-                    this.promenaPopune(Math.abs(parseInt(val)));
-                });
-                this.power$.subscribe(val => {
-                    setTimeout(() => this.promenaSnage(val),100);
-                    let iznosUkupneSnageLbl = document.querySelector(".ukupnaSnaga"); 
-                    let sum = 0.0;
-                    this.reaktori.map(reaktor =>{
-                        sum += parseFloat(reaktor.vratiIzlaznuSnagu());
-                     });
-                     iznosUkupneSnageLbl.innerHTML = sum.toFixed(2);
-                })
+                this.inicijalizacijaReaktora();    
+                this.prikaziReaktore();
+                this.izracunajUkupnuSnagu();
 
+                this.pokreniSubscriptions();
 
                 ev.target.disabled = true;
                 const iskljuci = document.querySelector(".iskljuci");
                 iskljuci.disabled = false;
 
-                radnik.json().then(rez=>this.konzola.innerHTML += `Pokretanje od strane radnika ${rez.ime} ${rez.prezime} `+ "&#13;&#10");
+                radnik.json()
+                .then(rez=>{
+                    this.ispisiNaKonzoli(`Pokretanje od strane radnika ${rez.ime} ${rez.prezime}`)
+                    this.ispisiNaKonzoli("Zahtevi za energijom ce se ispisati kada budu stigli, budite u pripravnosti...");
+                });
+                
+                
             }
             else
-                this.konzola.innerHTML += `Doslo je do greske `+ "&#13;&#10";
+                this.ispisiNaKonzoli(`Doslo je do greske`);
             
         })        
         .catch(err => console.log(err))
     }
 
-    InicijalizacijaReaktora(){
+    inicijalizacijaReaktora(){
         for( let i = 0; i<4; i++){
             const kapacitet = Math.random() + 1;
             
@@ -164,7 +127,7 @@ export class Elektrana {
         }
     }
 
-    PrikaziReaktore(){
+    prikaziReaktore(){
         this.reaktori.map((reaktor,index) => {
             let reaktCont = document.createElement("div");
             reaktCont.className = "reactor";
@@ -242,6 +205,63 @@ export class Elektrana {
         this.reaktori[index-1].osluskuj();
     }
 
+    izracunajUkupnuSnagu(){
+        let iznosUkupneSnageLbl = document.querySelector(".ukupnaSnaga");
+        let sum = 0.0;
+        this.reaktori.map(reaktor =>{
+            sum += parseFloat(reaktor.vratiIzlaznuSnagu());
+        });
+        iznosUkupneSnageLbl.innerHTML = sum.toFixed(2);
+        return sum;
+    }
+
+    pokreniSubscriptions(){
+
+        this.zahtevi$.pipe(
+            takeUntil(this.mainSubject$)
+        ).subscribe(val => {
+            document.querySelector(".demands").innerHTML = val.toFixed(2);
+            setTimeout(() => this.ispitivanjeIspunjenjaZahteva(val), 14500);
+        });
+
+        this.mainSubject$.subscribe(null,null,complete=>{
+            this.iskljuciElektranu();
+        })
+    
+        this.cooling$.subscribe(val => {
+            let iznosHladjenjaLbl =  document.querySelectorAll(".iznosH");
+            for(let i = 0; i < 4; i++){
+                iznosHladjenjaLbl[i].innerHTML = this.reaktori[i].vratiHladjenje();
+                this.promenaPopune(Math.abs(parseInt(i+1)));
+            }
+            
+        });
+
+        this.power$.subscribe(val => {
+            setTimeout(() => {
+                this.promenaSnage(val);
+                this.izracunajUkupnuSnagu();
+            },100);
+        })
+    }
+
+    ispitivanjeIspunjenjaZahteva(val){
+        let sum = this.izracunajUkupnuSnagu();
+        if(val <= sum){
+            this.feedback$.next(true);
+            this.ispisiNaKonzoli("Ispunjeni su zahtevi za ovaj sat!")
+        }
+        else{
+            this.feedback$.next(false);
+            this.ispisiNaKonzoli("Nisu ispunjeni zahtevi za ovaj sat! Ukoliko se ne ispune dva puta za redom, elektrana ce se ugasiti!")        
+        }
+
+    }
+
+    ispisiNaKonzoli(poruka){
+        this.konzola.innerHTML += `${poruka}` + "&#13;&#10";
+    }
+
     promenaSnage(ind){
         let intIndex = Math.abs(parseInt(ind));
         let labela = document.querySelectorAll(".iznos")[intIndex-1];
@@ -251,14 +271,6 @@ export class Elektrana {
         labela.innerHTML = iskoriscenost;
 
         this.promenaPopune(intIndex);
-        /*let iskoriscenost = this.reaktori[intIndex-1].vratiIskoriscenost();
-        labela.innerHTML = iskoriscenost;
-        popuna.style.flexGrow = iskoriscenost/100;
-        if(this.reaktori[intIndex-1].vratiTemperaturu()>=150.0)
-            popuna.style.background = 'red';
-        else{
-            popuna.style.background = 'green';
-        }*/
     }
 
     promenaPopune(ind){
@@ -275,17 +287,15 @@ export class Elektrana {
     iskljuciElektranu(){
         document.querySelector(".iskljuci").disabled = true;
         this.reactors.style.display = 'none';  
+        this.mainSubject$.complete();
         this.PrikaziReaktorPlaceholder();    
-        const pokreni = document.querySelector(".pokreni");
-        pokreni.disabled = false;
     }
 
     feedback(){
         return this.feedback$;
     }
-   
 
-   
-
-    
+    vratiSubject(){
+        return this.mainSubject$;
+    }
 }

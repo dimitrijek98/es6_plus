@@ -12,7 +12,7 @@ export class Reaktor{
         this.temperatura = 100;
        
         this.cooling$ = cooling$;
-        
+        console.log(this.mainSub$);
         
     }
 
@@ -79,7 +79,10 @@ export class Reaktor{
     izracunajTemperaturu(){
         this.temperatura = (100 + this.kapacitet * this.iskoriscenost/this.hladjenje * 10).toFixed(2);
         if(this.temperatura >= 150)
-            setTimeout(()=> this.ugasiElektranu(),3000)
+            setTimeout(()=> {
+                if(this.temperatura >= 150)
+                    this.ugasiElektranu();                
+            },3000)
         
     }
 

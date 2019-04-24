@@ -31,8 +31,7 @@ body {
     display: flex;
     flex-direction: column;
     flex-grow: 1;     
-    background-color: aquamarine;
-    margin-right: 10px;    
+    background-color: aquamarine    
 }
 
 .skala{
