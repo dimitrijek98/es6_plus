@@ -2,9 +2,10 @@ import { fromEvent } from "rxjs";
 
 
 export class Reaktor{
-    constructor(id, kapacitet, mainSub$, cooling$){
+    constructor(id, kapacitet, mainSub$, cooling$, powerPlantFail$){
         this.kapacitet = kapacitet;
         this.id = id;
+        this.powerPlantFail$ = powerPlantFail$;
         this.mainSub$ = mainSub$;
 
         this.hladjenje = 25;
@@ -12,7 +13,6 @@ export class Reaktor{
         this.temperatura = 100;
        
         this.cooling$ = cooling$;
-        console.log(this.mainSub$);
         
     }
 
@@ -88,7 +88,7 @@ export class Reaktor{
 
 
     ugasiElektranu(){
-        this.mainSub$.complete();
+        this.powerPlantFail$.next(`pregrevanje reaktora ${this.id}`)
     }
 
     vratiTemperaturu(){

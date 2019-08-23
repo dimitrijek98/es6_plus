@@ -1,13 +1,14 @@
 import { Reaktor } from "./reaktor";
-import { Subject, Observable, interval } from "rxjs";
+import { Subject} from "rxjs";
 import { takeUntil } from "rxjs/operators";
 
 export class Elektrana {
 
-    constructor(naziv, roditelj, zahtevi$){
+    constructor(naziv, roditelj, zahtevi$, powerPlantFail$){
         this.naziv = naziv;
         this.roditelj = roditelj;
         this.zahtevi$ = zahtevi$;
+        this.powerPlantFail$ = powerPlantFail$;
         this.mainSubject$ = new Subject();
         this.cooling$ = null;
         this.feedback$ = new Subject();
@@ -100,7 +101,7 @@ export class Elektrana {
 
                 radnik.json()
                 .then(rez=>{
-                    this.ispisiNaKonzoli(`Pokretanje od strane radnika ${rez.ime} ${rez.prezime}`)
+                    this.ispisiNaKonzoli(`Pokretanje od strane radnika ${rez.ime} ${rez.prezime}`);
                     this.ispisiNaKonzoli("Zahtevi za energijom ce se ispisati kada budu stigli, budite u pripravnosti...");
                 });
                 
@@ -110,7 +111,7 @@ export class Elektrana {
                 this.ispisiNaKonzoli(`Doslo je do greske`);
             
         })        
-        .catch(err => console.log(err))
+        .catch(err => console.log(err));
     }
 
     inicijalizacijaReaktora(){
@@ -118,10 +119,10 @@ export class Elektrana {
             const kapacitet = Math.random() + 1;
             
             if(this.reaktori === []){
-                this.reaktori.push(new Reaktor(i+1,kapacitet.toFixed(1),this.mainSubject$,this.cooling$));
+                this.reaktori.push(new Reaktor(i+1,kapacitet.toFixed(1),this.mainSubject$,this.cooling$,this.powerPlantFail$ ));
             }
             else{
-                this.reaktori[i] = new Reaktor(i+1,kapacitet.toFixed(1),this.mainSubject$,this.cooling$);
+                this.reaktori[i] = new Reaktor(i+1,kapacitet.toFixed(1),this.mainSubject$,this.cooling$, this.powerPlantFail$);
                 
             }
         }
@@ -155,7 +156,7 @@ export class Elektrana {
         container.appendChild(snaga);
 
         let snagaLbl = document.createElement("label");
-        snagaLbl.innerHTML = "Snaga: "
+        snagaLbl.innerHTML = "Snaga: ";
         snaga.appendChild(snagaLbl);
         
         let iznosSnage = document.createElement("label");
@@ -182,7 +183,7 @@ export class Elektrana {
         container.appendChild(hladj);
 
         let hladjLbl = document.createElement("label");
-        hladjLbl.innerHTML = "Hladjenje: "
+        hladjLbl.innerHTML = "Hladjenje: ";
         hladj.appendChild(hladjLbl);
         
         let iznosHladj = document.createElement("label");
@@ -216,7 +217,6 @@ export class Elektrana {
     }
 
     pokreniSubscriptions(){
-
         this.zahtevi$.pipe(
             takeUntil(this.mainSubject$)
         ).subscribe(val => {
@@ -226,7 +226,7 @@ export class Elektrana {
 
         this.mainSubject$.subscribe(null,null,complete=>{
             this.iskljuciElektranu();
-        })
+        });
     
         this.cooling$.subscribe(val => {
             let iznosHladjenjaLbl =  document.querySelectorAll(".iznosH");
@@ -249,11 +249,11 @@ export class Elektrana {
         let sum = this.izracunajUkupnuSnagu();
         if(val <= sum){
             this.feedback$.next(true);
-            this.ispisiNaKonzoli("Ispunjeni su zahtevi za ovaj sat!")
+            this.ispisiNaKonzoli("Ispunjeni su zahtevi za ovaj sat!");
         }
         else{
             this.feedback$.next(false);
-            this.ispisiNaKonzoli("Nisu ispunjeni zahtevi za ovaj sat! Ukoliko se ne ispune dva puta za redom, elektrana ce se ugasiti!")        
+            this.ispisiNaKonzoli("Nisu ispunjeni zahtevi za ovaj sat! Ukoliko se ne ispune dva puta za redom, elektrana ce se ugasiti!");
         }
 
     }
@@ -265,10 +265,9 @@ export class Elektrana {
     promenaSnage(ind){
         let intIndex = Math.abs(parseInt(ind));
         let labela = document.querySelectorAll(".iznos")[intIndex-1];
-        
-         
-        let iskoriscenost = this.reaktori[intIndex-1].vratiIskoriscenost();
-        labela.innerHTML = iskoriscenost;
+
+
+        labela.innerHTML = this.reaktori[intIndex-1].vratiIskoriscenost();
 
         this.promenaPopune(intIndex);
     }
